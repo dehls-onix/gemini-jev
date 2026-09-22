@@ -358,6 +358,9 @@ def analyze_cfa_intent(text: str) -> Tuple[str, str, str, str, Dict[str, float]]
 
     return primary_tool, secondary_tool, sub_cat, nuance, probs
 
+# alias for generic enterprise callers
+analyze_enterprise_intent = analyze_cfa_intent
+
 def get_engine_specific_routing(
     engine: str,
     text: str,

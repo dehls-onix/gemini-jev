@@ -46,7 +46,10 @@ async def healthz():
         "project_id": settings.gcp_project_id,
         "dataset": settings.bigquery_dataset,
         "a2ui_version": settings.a2ui_version,
-        "engines": ["BigQuery_ML", "JEV", "LAYA"]
+        "engines": [
+            "Gemini_Multimodal", "JEV", "LAYA", "BigQuery_ML",
+            "CatBoost", "XGBoost", "GradientXGB", "Scikit_Learn", "Statsmodels"
+        ]
     }
 
 @app.post("/api/compare")
