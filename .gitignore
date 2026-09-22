@@ -1,0 +1,22 @@
+# environment
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# macos
+.DS_Store
+
+# logs and artifacts
+*.log
+/tmp/
+
