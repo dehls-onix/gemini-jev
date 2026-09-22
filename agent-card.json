@@ -1,0 +1,71 @@
+{
+  "name": "Decision Workbench Agent",
+  "description": "Enterprise Multimodal Intent Router and Multi-Engine Benchmark (Gemini 3.8 Flash, TypeSafe JEV, Convai LAYA, BigQuery ML, CatBoost, XGBoost, GradientXGB, Scikit-Learn, Statsmodels) across 11 enterprise destinations.",
+  "version": "3.1.0",
+  "url": "https://gemini-jev-decision-workbench-36231825761.us-central1.run.app",
+  "protocolVersion": "0.3.0",
+  "preferredTransport": "JSONRPC",
+  "defaultInputModes": [
+    "text/plain",
+    "image/png",
+    "image/jpeg",
+    "video/mp4"
+  ],
+  "defaultOutputModes": [
+    "text/plain",
+    "application/json+a2ui"
+  ],
+  "capabilities": {
+    "streaming": true,
+    "extensions": [
+      {
+        "uri": "https://a2ui.org/a2a-extension/a2ui/v0.8",
+        "description": "Provides agent driven UI using the A2UI JSON format.",
+        "params": {
+          "acceptsInlineCatalogs": true,
+          "supportedCatalogIds": [
+            "https://a2ui.org/specification/v0_8/standard_catalog_definition.json"
+          ]
+        }
+      },
+      {
+        "uri": "https://a2ui.org/a2a-extension/a2ui/v0.9",
+        "description": "Provides agent driven UI using the A2UI JSON format.",
+        "params": {
+          "acceptsInlineCatalogs": true,
+          "supportedCatalogIds": [
+            "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json",
+            "https://www.gstatic.com/vertexaisearch/a2ui/v0_9/gemini_enterprise_composite_catalog.json"
+          ]
+        }
+      }
+    ]
+  },
+  "skills": [
+    {
+      "id": "enterprise_tool_selection",
+      "name": "Enterprise Multimodal Tool Selection & Intent Router",
+      "description": "Processes text queries, error screenshots, and video screen recordings with Gemini 3.8 Flash to disambiguate intent and route across 11 enterprise tools.",
+      "tags": [
+        "tool_selection",
+        "multimodal",
+        "video",
+        "screenshot",
+        "gemini_flash",
+        "tableau",
+        "servicenow",
+        "confluence",
+        "jira",
+        "github",
+        "artifactory",
+        "a2ui"
+      ],
+      "examples": [
+        "What tool solves this access denied error screenshot?",
+        "Where can I find the quarterly sales KPI dashboard?",
+        "Look at this screen recording of POS register freeze and dispatch to the right team",
+        "I need to fill out a request form to order new replacement equipment."
+      ]
+    }
+  ]
+}

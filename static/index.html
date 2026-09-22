@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini Enterprise Decision Workbench | JEV • LAYA • BigQuery ML</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white">
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+        <i class="fa-solid fa-cube text-white text-lg"></i>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+          Gemini Enterprise <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-semibold border border-indigo-500/30">A2UI v0.9</span>
+        </h1>
+        <p class="text-xs text-slate-400 font-medium">search-ahmed • Decision Workbench • Live TypeSafe JEV • Convai Laya • BigQuery ML</p>
+      </div>
+    </div>
+    
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-2 text-xs text-slate-400 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="font-mono">us-central1</span>
+        <span class="text-slate-600">|</span>
+        <span class="font-mono">jev_laya_eval</span>
+      </div>
+      <button onclick="runSample(currentSelectedDoc.id)" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-lg shadow-md transition flex items-center gap-2">
+        <i class="fa-solid fa-play"></i> Run All Models
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Body Layout -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+    <!-- Left Column: Controls, Document Corpus & Active State (4 cols) -->
+    <section class="lg:col-span-4 space-y-6">
+      <!-- Corpus Selector Card -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+            <i class="fa-solid fa-folder-open text-indigo-400"></i> Evaluation Corpus
+          </h2>
+          <span class="text-xs text-slate-500">Live BigQuery</span>
+        </div>
+        <div class="space-y-2.5" id="corpusList"></div>
+      </div>
+
+      <!-- Live Document Inspector -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2 mb-3">
+          <i class="fa-solid fa-file-lines text-emerald-400"></i> Active Document Text
+        </h2>
+        <div id="activeDocText" class="p-3.5 bg-slate-950/80 rounded-lg text-xs font-mono text-slate-300 border border-slate-800/80 leading-relaxed max-h-48 overflow-y-auto">
+          Loading...
+        </div>
+        <div class="mt-3 flex items-center justify-between text-xs text-slate-400">
+          <span>Target Schema: <strong class="text-slate-200">Document Class</strong></span>
+          <span id="groundTruthBadge" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">Invoice</span>
+        </div>
+      </div>
+
+      <!-- Realtime Activity & Event Log (Streaming proof) -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2 mb-3">
+          <i class="fa-solid fa-stream text-amber-400"></i> Async Event Stream
+        </h2>
+        <div id="eventStreamLog" class="space-y-2 text-xs font-mono max-h-48 overflow-y-auto p-2 bg-slate-950/50 rounded-lg border border-slate-800/80">
+          <div class="text-slate-500 italic">Waiting for comparison run...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Visual Workbench & A2UI Panels (8 cols) -->
+    <section class="lg:col-span-8 space-y-6">
+
+      <!-- Model Performance Cards Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        <!-- BigQuery ML Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl hover:border-blue-500/50 transition">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-blue-400 uppercase tracking-wide">BigQuery ML</span>
+            <span id="bqmlStatus" class="w-2 h-2 rounded-full bg-slate-600"></span>
+          </div>
+          <div class="text-xl font-bold text-white mb-1" id="bqmlLabel">--</div>
+          <div class="text-xs text-slate-400 mb-3" id="bqmlDetails">Confidence: --</div>
+          <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+            <div id="bqmlBar" class="bg-blue-500 h-2 w-0 transition-all duration-500"></div>
+          </div>
+          <div class="mt-3 flex justify-between text-[11px] text-slate-500 font-mono">
+            <span id="bqmlLatency"><i class="fa-solid fa-bolt"></i> -- ms</span>
+            <span id="bqmlCost">$0.05 / 1k</span>
+          </div>
+        </div>
+
+        <!-- TypeSafe JEV Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl hover:border-emerald-500/50 transition">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wide flex items-center gap-1.5">
+              TypeSafe JEV <span class="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono">LIVE API</span>
+            </span>
+            <span id="jevStatus" class="w-2 h-2 rounded-full bg-slate-600"></span>
+          </div>
+          <div class="text-xl font-bold text-white mb-1" id="jevLabel">--</div>
+          <div class="text-xs text-slate-400 mb-3" id="jevDetails">Confidence: --</div>
+          <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+            <div id="jevBar" class="bg-emerald-500 h-2 w-0 transition-all duration-500"></div>
+          </div>
+          <div class="mt-3 flex justify-between text-[11px] text-slate-500 font-mono">
+            <span id="jevLatency"><i class="fa-solid fa-bolt"></i> -- ms</span>
+            <span id="jevCost">$0.042/1M tok</span>
+          </div>
+        </div>
+
+        <!-- LAYA Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl hover:border-amber-500/50 transition">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-amber-400 uppercase tracking-wide flex items-center gap-1.5">
+              LAYA System 1 <span class="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">ROUTER</span>
+            </span>
+            <span id="layaStatus" class="w-2 h-2 rounded-full bg-slate-600"></span>
+          </div>
+          <div class="text-xl font-bold text-white mb-1" id="layaLabel">--</div>
+          <div class="text-xs text-slate-400 mb-3" id="layaDetails">Confidence: --</div>
+          <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+            <div id="layaBar" class="bg-amber-500 h-2 w-0 transition-all duration-500"></div>
+          </div>
+          <div class="mt-3 flex justify-between text-[11px] text-slate-500 font-mono">
+            <span id="layaLatency"><i class="fa-solid fa-bolt"></i> -- ms</span>
+            <span id="layaCost">Free (Apache 2.0)</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Charts & Visual Analytics Section -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Radar Multi-Dimensional Comparison -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4 flex items-center justify-between">
+            <span><i class="fa-solid fa-chart-pie text-indigo-400"></i> Tradeoff Radar</span>
+            <span class="text-xs font-normal text-slate-500">System 1 Bench</span>
+          </h3>
+          <div class="h-64 flex items-center justify-center">
+            <canvas id="radarChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Latency Bar Chart -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4 flex items-center justify-between">
+            <span><i class="fa-solid fa-chart-column text-purple-400"></i> Live Latency (ms)</span>
+            <span class="text-xs font-normal text-slate-500">Wall-time Bench</span>
+          </h3>
+          <div class="h-64 flex items-center justify-center">
+            <canvas id="barChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grounded Synthesis & A2UI Inspector -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+            <i class="fa-solid fa-brain text-pink-400"></i> Grounded Consensus & Architecture Synthesis
+          </h3>
+          <span id="consensusBadge" class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300">
+            Awaiting Results
+          </span>
+        </div>
+        <p id="synthesisText" class="text-sm text-slate-300 leading-relaxed font-sans">
+          Click <strong class="text-indigo-400">Run All Models</strong> or select any corpus record on the left to begin concurrent multi-model classification. BigQuery ML, TypeSafe JEV, and LAYA evaluate asynchronously.
+        </p>
+
+        <!-- Native A2UI v0.9 Raw Payload Drawer -->
+        <details class="mt-4 border-t border-slate-800 pt-3">
+          <summary class="text-xs text-slate-500 hover:text-slate-300 cursor-pointer font-mono select-none">
+            Inspect Generated A2UI v0.9 Wire Payload (MaterialCard / Surface Contract)
+          </summary>
+          <pre id="rawA2UIPayload" class="mt-2 p-3 bg-slate-950 rounded text-[11px] font-mono text-emerald-400 overflow-x-auto max-h-48 border border-slate-800">
+// A2UI payload will be compiled upon run completion...
+          </pre>
+        </details>
+      </div>
+
+    </section>
+  </main>
+
+  <script>
+    let radarChartInstance = null;
+    let barChartInstance = null;
+
+    const corpus = [{"id": "fin_001", "title": "Q3 Corporate Earnings Release & EBITDA Analysis", "class": "Financial Report", "text": "Q3 Balance sheet assets totaling $14.2M with liabilities $6.1M, net operating income increased 18% YoY. EBITDA margins steady at 28.4%.", "language": "en"}, {"id": "fin_002", "title": "Consolidated Statement of Cash Flows FY2026", "class": "Financial Report", "text": "Cash flow statement: Operating activities generated $42.5M in cash, capital expenditures were $11.2M, leaving free cash flow of $31.3M for share repurchases.", "language": "en"}, {"id": "fin_003", "title": "SEC Form 10-Q Segment Revenue Breakdown", "class": "Financial Report", "text": "Item 1. Financial Statements. Enterprise Cloud segment revenue grew 34% to $180M, while legacy on-premises maintenance declined 6% year-over-year.", "language": "en"}, {"id": "fin_004", "title": "Rapport Financier Semestriel - Bilan Comptable", "class": "Financial Report", "text": "Rapport semestriel: Le r\u00e9sultat d'exploitation consolid\u00e9 ressort \u00e0 24,5 M\u20ac, en hausse de 12%. La tr\u00e9sorerie nette s'\u00e9tablit \u00e0 105 M\u20ac au 30 juin 2026.", "language": "fr"}, {"id": "fin_005", "title": "Quarterly Debt Service & Liquidity Covenants", "class": "Financial Report", "text": "Liquidity and Debt profile: Total long-term debt principal outstanding is $250M with interest coverage ratio of 6.2x, comfortably exceeding covenant of 3.5x.", "language": "en"}, {"id": "fin_006", "title": "Audited Balance Sheet & Auditor's Unqualified Opinion", "class": "Financial Report", "text": "Independent Auditor's Report: In our opinion, the consolidated balance sheets present fairly, in all material respects, the financial position of the Group.", "language": "en"}, {"id": "fin_007", "title": "Estado de Situaci\u00f3n Patrimonial y P\u00e9rdidas y Ganancias", "class": "Financial Report", "text": "Estados financieros consolidados: El beneficio neto atribuible ascendi\u00f3 a 18,2 millones de euros frente a los 15,1 millones del ejercicio precedente.", "language": "es"}, {"id": "fin_008", "title": "Treasury Asset Allocation & Portfolio Yield", "class": "Financial Report", "text": "Treasury quarterly memo: Short-term cash equivalents allocation 45% in US Treasury Bills yielding 5.15%, 35% in commercial paper, 20% overnight repo.", "language": "en"}, {"id": "inv_001", "title": "Acme Cloud Infrastructure Invoice #INV-2026-992", "class": "Invoice", "text": "Invoice #INV-2026-992 Net 30 Due Date 10/12/2026 Total USD 4,520.00 Vendor Acme Industrial. Items: 10x Server Rackmount Chassis, support retainer.", "language": "en"}, {"id": "inv_002", "title": "Stripe Corporate SaaS Subscription Billing #STR-8812", "class": "Invoice", "text": "Monthly statement: Stripe Payments Billing charge $1,249.00 for payment gateway processing fees. Payment method: Corporate Visa ending in 4112.", "language": "en"}, {"id": "inv_003", "title": "Datadog Observability Tier Enterprise Invoice", "class": "Invoice", "text": "Datadog Invoice DD-99104 Amount Due: $8,750.00 Terms: Net 15. Pro-rated host metrics, APM ingest 1.4TB, custom log indexing fees.", "language": "en"}, {"id": "inv_004", "title": "Facture Fournisseur Mat\u00e9riel R\u00e9seau #FR-2026-04", "class": "Invoice", "text": "Facture N\u00b0 FR-2026-04 \u00c9ch\u00e9ance: 30 jours. Total TTC: 3.420,00 EUR. Fournisseur: Soci\u00e9t\u00e9 R\u00e9seaux Paris. C\u00e2blage fibre optique et routeurs.", "language": "fr"}, {"id": "inv_005", "title": "Rechnung IT-Dienstleistungen und Cloud-Hosting", "class": "Invoice", "text": "Rechnung Nr. RE-2026-881 Zahlungsziel: 14 Tage netto. Gesamtbetrag: 5.600,00 EUR zzgl. 19% MwSt. Anbieter: M\u00fcnchen Cloud Systeme GmbH.", "language": "de"}, {"id": "inv_006", "title": "Consulting Retainer Billing Notice Q3", "class": "Invoice", "text": "Professional Services Statement: McKinsey & Associates. Hours billed: 40 hrs @ $450/hr = $18,000.00. Wire instructions included on page 2.", "language": "en"}, {"id": "inv_007", "title": "AWS Consolidated Monthly Billing Demand", "class": "Invoice", "text": "Amazon Web Services Invoice #AWS-88290-2026. Total Charges: $24,190.54. Payment will be automatically deducted from your ACH account.", "language": "en"}, {"id": "inv_008", "title": "Factura de Suministro El\u00e9ctrico y Servidores", "class": "Invoice", "text": "Factura electr\u00f3nica #ESP-9912 Importe total a pagar: 1.850,25 EUR. Vencimiento: 25/10/2026. Concepto: Alojamiento en centro de datos Madrid.", "language": "es"}, {"id": "inv_009", "title": "Snowflake Data Warehouse Credits True-up", "class": "Invoice", "text": "Snowflake Computing Invoice SF-11029. Capacity consumption: 4,000 credits @ $3.00/credit = $12,000.00. Due upon receipt.", "language": "en"}, {"id": "inv_010", "title": "Dell Technologies Enterprise Hardware Invoice", "class": "Invoice", "text": "Sales Invoice Dell #9931024. Purchase Order PO-88192. 5x PowerEdge R760 Servers, total amount $38,400.00. FOB destination.", "language": "en"}, {"id": "leg_001", "title": "Master Services Agreement (MSA) - Apex & GlobalTech", "class": "Contract", "text": "Master Services Agreement entered into on September 1, 2026 by and between Apex Corp and GlobalTech LLC. Governing Law: State of Delaware.", "language": "en"}, {"id": "leg_002", "title": "Mutual Non-Disclosure Agreement (NDA)", "class": "Contract", "text": "This Mutual Nondisclosure Agreement is made between Discloser and Recipient to protect proprietary technical trade secrets during M&A exploration.", "language": "en"}, {"id": "leg_003", "title": "Software License & Intellectual Property Assignment", "class": "Contract", "text": "Licensor hereby grants to Licensee an exclusive, perpetual, royalty-free worldwide license to utilize, modify, and distribute the licensed software.", "language": "en"}, {"id": "leg_004", "title": "Contrat de Prestation de Services Informatiques", "class": "Contract", "text": "Le pr\u00e9sent contrat de prestation de services r\u00e9git les droits et obligations entre le Prestataire et le Client sous le droit applicable fran\u00e7ais.", "language": "fr"}, {"id": "leg_005", "title": "Acquisition Share Purchase Agreement Clause 4.1", "class": "Contract", "text": "Share Purchase Agreement: Seller agrees to transfer 1,000,000 ordinary shares free from all liens, encumbrances, and third-party claims.", "language": "en"}, {"id": "leg_006", "title": "Data Processing Addendum (GDPR Article 28 DPA)", "class": "Contract", "text": "Data Processing Addendum pursuant to EU General Data Protection Regulation 2016/679. Processor shall process Personal Data only on documented instructions.", "language": "en"}, {"id": "leg_007", "title": "Contrato de Confidencialidad y Cesi\u00f3n de Derechos", "class": "Contract", "text": "Contrato de confidencialidad mercantil: Las partes convienen en someter cualquier controversia a la jurisdicci\u00f3n de los tribunales de Madrid.", "language": "es"}, {"id": "leg_008", "title": "Executive Employment Agreement & Severance Terms", "class": "Contract", "text": "Executive Employment Agreement: Employee shall receive base salary of $350,000 plus equity vest. Non-compete covenant applies for 12 months post-termination.", "language": "en"}, {"id": "med_001", "title": "Hospital Patient Discharge Summary - Acute Bronchitis", "class": "Medical Record", "text": "Patient discharge notes: 45 yo male diagnosed with acute bronchitis, prescribed azithromycin 500mg, follow-up in 10 days at pulmonary clinic.", "language": "en"}, {"id": "med_002", "title": "Emergency Department Triage & Physical Examination", "class": "Medical Record", "text": "ED Clinical encounter: Patient presents with chest pain radiating to left jaw. ECG reveals ST elevations in leads V1-V4. Administered sublingual nitroglycerin.", "language": "en"}, {"id": "med_003", "title": "Oncology Clinical Pathology Biopsy Report", "class": "Medical Record", "text": "Surgical Pathology: Specimen designated right breast mass biopsy. Histologic grade 2 invasive ductal carcinoma. ER/PR positive, HER2 neu negative.", "language": "en"}, {"id": "med_004", "title": "Compte-rendu d'Hospitalisation et Prescription M\u00e9dicale", "class": "Medical Record", "text": "Observation m\u00e9dicale: Patient admis pour d\u00e9compensation respiratoire aigu\u00eb. Traitement par corticoth\u00e9rapie IV et a\u00e9rosols de salbutamol.", "language": "fr"}, {"id": "med_005", "title": "Operative Procedure Note - Laparoscopic Cholecystectomy", "class": "Medical Record", "text": "Operative Report: Pre-op diagnosis: symptomatic cholelithiasis. Procedure: Laparoscopic cholecystectomy. Estimated blood loss 25mL, no complications.", "language": "en"}, {"id": "med_006", "title": "Outpatient Psychiatric Evaluation & Mental Status Exam", "class": "Medical Record", "text": "Psychiatric Intake: 32 yo female reporting generalized anxiety and insomnia. Mood dysthymic, thought process linear. Prescribed escitalopram 10mg daily.", "language": "en"}, {"id": "med_007", "title": "Historial Cl\u00ednico de Urgencias y Resonancia Magn\u00e9tica", "class": "Medical Record", "text": "Informe de radiolog\u00eda: RM lumbar muestra hernia discal L4-L5 con compresi\u00f3n de ra\u00edz nerviosa L5 izquierda. Se prescribe reposo y analgesia.", "language": "es"}, {"id": "med_008", "title": "Cardiology Echocardiogram Assessment Notes", "class": "Medical Record", "text": "Transthoracic Echocardiogram: Left ventricular ejection fraction preserved at 55-60%. Mild concentric LV hypertrophy, trace mitral regurgitation.", "language": "en"}, {"id": "sec_001", "title": "P0 Incident Postmortem - API Gateway Outage", "class": "Incident Log", "text": "Postmortem INC-4091: Global API gateway experienced 42 minutes of downtime due to cascading TLS certificate expiration across envoy ingress proxies.", "language": "en"}, {"id": "sec_002", "title": "SOC Alert - Suspicious Lateral Movement via SSH", "class": "Incident Log", "text": "SIEM Incident #SEC-881: Multiple failed SSH attempts followed by successful root login from unauthorized IP range 198.51.100.44. Initiated endpoint isolation.", "language": "en"}, {"id": "sec_003", "title": "Kubernetes Pod CrashLoopBackOff Runbook Incident", "class": "Incident Log", "text": "Alert K8s-Prod-OOM: Ingestion pods in namespace default terminated with ExitCode 137 (OOMKilled). Memory limit increased from 2Gi to 4Gi.", "language": "en"}, {"id": "sec_004", "title": "Rapport d'Incident S\u00e9curit\u00e9 - Fuite de Donn\u00e9es", "class": "Incident Log", "text": "Rapport d'incident: Tentative d'injection SQL d\u00e9tect\u00e9e sur le portail web. Le pare-feu WAF a bloqu\u00e9 14 000 requ\u00eates malveillantes en 10 minutes.", "language": "fr"}, {"id": "sec_005", "title": "DDoS Mitigation Report - SYN Flood Vector", "class": "Incident Log", "text": "Cloudflare DDoS Mitigation summary: Ingress traffic peaked at 450 Gbps with 90M packets per second. Cloudflare Magic Transit dropped 99.8% of volumetric traffic.", "language": "en"}, {"id": "sec_006", "title": "Database Deadlock & Connection Pool Saturation", "class": "Incident Log", "text": "PostgreSQL telemetry alert: Active connections reached max_connections=500. Long-running lock on table accounts_ledger caused query queue pileup.", "language": "en"}, {"id": "sec_007", "title": "Alerta de Seguridad - Ataque de Fuerza Bruta VPN", "class": "Incident Log", "text": "Registro de auditor\u00eda del firewall: Detectados 850 intentos de autenticaci\u00f3n fallidos en gateway VPN corporativo. Se activ\u00f3 el bloqueo autom\u00e1tico de IP.", "language": "es"}, {"id": "sec_008", "title": "Zero-Day Vulnerability Advisory CVE-2026-4491 Patch Log", "class": "Incident Log", "text": "Emergency patch notice: Kernel privilege escalation patch applied across all 120 production Ubuntu worker nodes. All clusters rebooted cleanly.", "language": "en"}, {"id": "sup_001", "title": "Enterprise SLA Violation & Immediate Refund Demand", "class": "Support Ticket", "text": "Ticket #SUP-88192: We experienced 6 hours of unannounced downtime yesterday violating our 99.9% uptime SLA. We demand an immediate $5,000 account credit.", "language": "en"}, {"id": "sup_002", "title": "Cancellation Request - Pricing Tier Increase", "class": "Support Ticket", "text": "Account #AC-4411: Your recent 30% price increase is unacceptable for our team size. Please cancel our enterprise subscription effective end of this billing cycle.", "language": "en"}, {"id": "sup_003", "title": "SSO Okta Integration Configuration Assistance", "class": "Support Ticket", "text": "Hello support, we are trying to configure Okta SAML 2.0 with your identity provider. The metadata XML import fails with error 'Invalid EntityID'. Please assist.", "language": "en"}, {"id": "sup_004", "title": "Demande de R\u00e9siliation d'Abonnement Entreprise", "class": "Support Ticket", "text": "Bonjour, nous souhaitons r\u00e9silier notre contrat annuel \u00e0 \u00e9ch\u00e9ance du 31 d\u00e9cembre. Merci de nous confirmer la prise en compte de notre pr\u00e9avis.", "language": "fr"}, {"id": "sup_005", "title": "Feature Request - Role-Based Granular Permissions", "class": "Support Ticket", "text": "Hi product team, our compliance auditors require read-only access for external accountants without granting access to API keys. Can this feature be prioritized?", "language": "en"}, {"id": "sup_006", "title": "Billing Discrepancy - Billed Twice in March", "class": "Support Ticket", "text": "Hi, our credit card statement shows two identical charges of $890 on March 1st. Please reverse the duplicate payment immediately.", "language": "en"}, {"id": "sup_007", "title": "Solicitud de Baja del Servicio y Exportaci\u00f3n de Datos", "class": "Support Ticket", "text": "Por la presente solicitamos la cancelaci\u00f3n definitiva de nuestra cuenta corporativa y solicitamos el enlace de descarga para la exportaci\u00f3n completa de datos.", "language": "es"}, {"id": "sup_008", "title": "Technical Bug - Webhook Payloads Dropping on High Concurrency", "class": "Support Ticket", "text": "Ticket #SUP-99120: Whenever our webhook volume exceeds 200 events/sec, your webhook dispatcher returns 504 Gateway Timeout. Needs urgent engineering review.", "language": "en"}];
+
+    let currentSelectedDoc = corpus[0];
+
+    function initCharts() {
+      const radarCtx = document.getElementById('radarChart').getContext('2d');
+      radarChartInstance = new Chart(radarCtx, {
+        type: 'radar',
+        data: {
+          labels: ['Accuracy', 'Latency', 'Cost Efficiency', 'Structure Parsing', 'Multilingual 100+'],
+          datasets: [
+            {
+              label: 'JEV (TypeSafe)',
+              data: [99, 65, 88, 98, 75],
+              backgroundColor: 'rgba(52, 168, 83, 0.2)',
+              borderColor: '#34A853',
+              borderWidth: 2,
+              pointBackgroundColor: '#34A853'
+            },
+            {
+              label: 'LAYA (convai)',
+              data: [96, 95, 100, 92, 98],
+              backgroundColor: 'rgba(251, 188, 4, 0.2)',
+              borderColor: '#FBBC04',
+              borderWidth: 2,
+              pointBackgroundColor: '#FBBC04'
+            },
+            {
+              label: 'BigQuery ML',
+              data: [89, 98, 99, 75, 70],
+              backgroundColor: 'rgba(66, 133, 244, 0.2)',
+              borderColor: '#4285F4',
+              borderWidth: 2,
+              pointBackgroundColor: '#4285F4'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              angleLines: { color: '#334155' },
+              grid: { color: '#1E293B' },
+              pointLabels: { color: '#94A3B8', font: { size: 10 } },
+              ticks: { display: false, max: 100 }
+            }
+          },
+          plugins: {
+            legend: { labels: { color: '#CBD5E1', font: { size: 11 } } }
+          }
+        }
+      });
+
+      const barCtx = document.getElementById('barChart').getContext('2d');
+      barChartInstance = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+          labels: ['BigQuery ML', 'TypeSafe JEV (Live)', 'LAYA System 1'],
+          datasets: [{
+            label: 'Latency (ms)',
+            data: [45, 1200, 33],
+            backgroundColor: ['#4285F4', '#34A853', '#FBBC04'],
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#94A3B8' } },
+            y: { grid: { color: '#1E293B' }, ticks: { color: '#94A3B8' } }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
+    }
+
+    function renderCorpusList() {
+      const container = document.getElementById('corpusList');
+      container.innerHTML = corpus.map((doc) => `
+        <div onclick="selectDocument('${doc.id}')" 
+             class="p-3 rounded-lg border border-slate-800 bg-slate-950/60 hover:bg-slate-800/60 hover:border-indigo-500/50 cursor-pointer transition flex items-center justify-between group">
+          <div>
+            <div class="text-xs font-semibold text-slate-200 group-hover:text-indigo-400 transition">${doc.title}</div>
+            <div class="text-[10px] text-slate-500 font-mono">${doc.id} • ${doc.class}</div>
+          </div>
+          <i class="fa-solid fa-chevron-right text-xs text-slate-600 group-hover:text-indigo-400 transition"></i>
+        </div>
+      `).join('');
+    }
+
+    function selectDocument(docId) {
+      const doc = corpus.find(d => d.id === docId);
+      if (!doc) return;
+      currentSelectedDoc = doc;
+      document.getElementById('activeDocText').innerText = doc.text;
+      document.getElementById('groundTruthBadge').innerText = doc.class;
+      runSample(doc.id);
+    }
+
+    function logEvent(text, color = "text-slate-400") {
+      const log = document.getElementById('eventStreamLog');
+      const time = new Date().toLocaleTimeString();
+      const entry = document.createElement('div');
+      entry.className = `${color} transition-all duration-300`;
+      entry.innerHTML = `<span class="text-slate-600">[${time}]</span> ${text}`;
+      log.prepend(entry);
+    }
+
+    async function runSample(docId) {
+      const doc = corpus.find(d => d.id === docId) || currentSelectedDoc;
+      logEvent(`Starting concurrent comparison run for <strong>${doc.id}</strong>`, "text-indigo-400");
+
+      ['bqml', 'jev', 'laya'].forEach(k => {
+        document.getElementById(`${k}Status`).className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+        document.getElementById(`${k}Label`).innerText = "Inferring...";
+        document.getElementById(`${k}Details`).innerText = "Confidence: --";
+        document.getElementById(`${k}Bar`).style.width = "20%";
+      });
+      document.getElementById('consensusBadge').innerText = "Analyzing...";
+      document.getElementById('consensusBadge').className = "text-xs font-bold px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 animate-pulse";
+
+      try {
+        const response = await fetch('/api/compare', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            doc_id: doc.id,
+            title: doc.title,
+            text_content: doc.text,
+            ground_truth: doc.class
+          })
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const eventData = JSON.parse(line.slice(6));
+              handleWorkspaceEvent(eventData);
+            }
+          }
+        }
+      } catch (err) {
+        logEvent(`Error during execution: ${err}`, "text-rose-400");
+      }
+    }
+
+    function handleWorkspaceEvent(event) {
+      if (event.event_type === "run.created") {
+        logEvent(`Run initialized: <span class="font-mono">${event.payload.doc_id}</span>`, "text-slate-300");
+      } else if (event.event_type === "plan.ready") {
+        logEvent(`Bounded task scheduler dispatched 3 independent specialists`, "text-purple-400");
+      } else if (event.event_type === "engine.result") {
+        const res = event.payload;
+        const engKey = res.engine === "BigQuery_ML" ? "bqml" : res.engine.toLowerCase();
+        
+        logEvent(`<strong>${res.engine}</strong> finished in ${res.latency_ms}ms with confidence ${(res.confidence*100).toFixed(1)}%`, "text-emerald-400");
+        
+        document.getElementById(`${engKey}Status`).className = "w-2 h-2 rounded-full bg-emerald-400";
+        document.getElementById(`${engKey}Label`).innerText = res.predicted_label;
+        document.getElementById(`${engKey}Details`).innerText = `Confidence: ${(res.confidence * 100).toFixed(1)}%`;
+        document.getElementById(`${engKey}Bar`).style.width = `${res.confidence * 100}%`;
+        document.getElementById(`${engKey}Latency`).innerHTML = `<i class="fa-solid fa-bolt"></i> ${res.latency_ms} ms`;
+        
+        if (barChartInstance) {
+          const idx = res.engine === "BigQuery_ML" ? 0 : (res.engine === "JEV" ? 1 : 2);
+          barChartInstance.data.datasets[0].data[idx] = res.latency_ms;
+          barChartInstance.update();
+        }
+      } else if (event.event_type === "run.completed") {
+        logEvent(`Task graph finished. Reducer compiled workspace view.`, "text-indigo-300");
+        document.getElementById('consensusBadge').innerText = "Consensus Reached";
+        document.getElementById('consensusBadge').className = "text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+        fetchLatestA2UI();
+      }
+    }
+
+    async function fetchLatestA2UI() {
+      try {
+        const resp = await fetch('/api/a2ui/latest');
+        const data = await resp.json();
+        document.getElementById('rawA2UIPayload').innerText = JSON.stringify(data, null, 2);
+        if (data.summary) {
+          document.getElementById('synthesisText').innerText = data.summary;
+        }
+      } catch (e) {}
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initCharts();
+      renderCorpusList();
+      selectDocument('doc_001');
+    });
+  </script>
+</body>
+</html>
